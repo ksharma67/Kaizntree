@@ -1,0 +1,28 @@
+# Ignore Python bytecode files
+__pycache__/
+
+# Ignore environment-specific settings
+*.env
+
+# Ignore Django's migrations
+**/migrations/
+
+# Ignore user-uploaded media files
+media/
+
+# Ignore compiled Vue.js files
+/dist/node_modules/
+
+# Ignore logs and temporary files
+*.log
+*.swp
+
+# Ignore database dump files
+*.sql
+
+# Ignore editor-specific files
+.vscode/
+.idea/
+
+# Ignore local configuration files
+.DS_Store
