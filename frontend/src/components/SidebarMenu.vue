@@ -1,5 +1,6 @@
 <template>
   <div class="sidebar-menu" :class="{ 'open': isMenuOpen }">
+    <!-- Toggle button for hamburger menu -->
     <div class="menu-toggle" @click="toggleMenu">
       <div class="hamburger">
         <div class="bar"></div>
@@ -7,12 +8,15 @@
         <div class="bar"></div>
       </div>
     </div>
+    <!-- Hamburger menu, visible only when isMenuOpen is true -->
     <ul v-if="isMenuOpen" class="hamburger-menu">
       <li v-for="(item, index) in menuItems" :key="index">
         <template v-if="item.spacer">
+          <!-- Render a spacer if item.spacer is true -->
           <div class="spacer"></div>
         </template>
         <template v-else>
+          <!-- Render a router link for non-spacer items -->
           <router-link :to="item.route" class="menu-item" :class="{ 'active': $route.path === item.route }" exact>
             <div class="menu-icon-wrapper">
               <img :src="requireIcon(item.icon)" class="menu-icon" alt="Menu Icon">
@@ -22,6 +26,7 @@
         </template>
       </li>
     </ul>
+    <!-- Main menu, visible on larger screens -->
     <ul class="main-menu">
       <li v-for="(item, index) in menuItems" :key="index">
         <template v-if="item.spacer">
@@ -45,6 +50,7 @@ export default {
   name: 'SidebarMenu',
   data() {
     return {
+      // Array of menu items with id, label, route, icon, and optional spacer
       menuItems: [
         {id: 1, label: 'Home', route: '/dashboard', icon: 'home.png'},
         {id: 2, label: 'Items', route: '/items', icon: 'items.png'},
@@ -63,16 +69,19 @@ export default {
         {id: 14, label: 'My Profile', route: '/myprofile', icon: 'myprofile.png'}
           // Add more menu items as needed
       ],
-      isMenuOpen: false
+      isMenuOpen: false // Flag to control the visibility of the hamburger menu
     };
   },
   methods: {
+    // Method to load icons dynamically
     requireIcon(icon) {
       return require(`@/assets/${icon}`);
     },
+    // Method to toggle the visibility of the hamburger menu
     toggleMenu() {
       this.isMenuOpen = !this.isMenuOpen;
     },
+    // Method to handle logout (if applicable)
     logout() {
       localStorage.removeItem('user-token'); // Remove the token from localStorage
       this.$router.push('/login'); // Redirect to login page
@@ -82,6 +91,7 @@ export default {
 </script>
 
 <style scoped>
+/* Styles for the sidebar menu */
 .sidebar-menu {
   position: fixed;
   top: 0;
@@ -95,6 +105,7 @@ export default {
   border-right: 5px solid #007bff;
 }
 
+/* Styles for menu lists */
 .sidebar-menu ul {
   list-style-type: none;
   padding: 0;
@@ -105,6 +116,7 @@ export default {
   margin-bottom: 2%;
 }
 
+/* Styles for menu items */
 .sidebar-menu ul li a {
   font-family: Montserrat, sans-serif !important;
   text-decoration: none;
@@ -115,18 +127,21 @@ export default {
   padding: 5px 5px;
 }
 
+/* Styles for active menu items */
 .sidebar-menu ul li a.active {
   background-color: #bbbaba;
   color: #000;
-  border-radius: 5px; 
+  border-radius: 5px;
 }
 
+/* Styles for menu icons */
 .sidebar-menu ul li a .menu-icon {
   width: 30px; /* Adjust the width as needed */
   height: 30px; /* Adjust the height as needed */
   margin-right: 10px;
 }
 
+/* Styles for menu toggle (hamburger icon) */
 .menu-toggle {
   position: absolute;
   top: 20px;
@@ -135,10 +150,12 @@ export default {
   z-index: 1000; /* Ensure toggle is above other content */
 }
 
+/* Styles for spacer */
 .spacer {
   height: 40px; /* Adjust the height for the desired spacing */
 }
 
+/* Styles for hamburger menu */
 .hamburger-menu {
   list-style-type: none;
   padding: 0;
@@ -170,52 +187,46 @@ export default {
   margin-right: 10px;
 }
 
-.menu-toggle {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  cursor: pointer;
-  z-index: 1000;
+/* Styles for hamburger icon */
+.hamburger {
+  width: 30px;
+  height: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
+.bar {
+  width: 100%;
+  height: 3px;
+  background-color: #333;
+}
+
+/* Media queries for responsive layout */
 @media screen and (min-width: 769px) {
   .menu-toggle {
-    display: none;
+    display: none; /* Hide menu toggle on larger screens */
   }
 
   .hamburger-menu {
-    display: none;
+    display: none; /* Hide hamburger menu on larger screens */
   }
 
   .sidebar-menu.open .hamburger-menu {
-    display: block;
+    display: block; /* Show hamburger menu when sidebar is open */
   }
 }
 
 @media screen and (max-width: 768px) {
   .sidebar-menu {
-    border-right: none;
+    border-right: none; /* Remove right border on smaller screens */
   }
   .main-menu {
-    display: none;
+    display: none; /* Hide main menu on smaller screens */
   }
 
   .sidebar-menu.open .main-menu {
-    display: block;
-  }
-
-  .hamburger {
-    width: 30px;
-    height: 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .bar {
-    width: 100%;
-    height: 3px;
-    background-color: #333;
+    display: block; /* Show main menu when sidebar is open */
   }
 }
 </style>
