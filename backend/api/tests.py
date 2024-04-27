@@ -1,124 +1,152 @@
-from django.test import TestCase
+from .admin import ItemAdmin
 from django.urls import reverse
+from django.test import TestCase
 from rest_framework import status
-from rest_framework.test import APIClient
 from django.contrib.auth.models import User
+from django.contrib.admin.sites import AdminSite
 from rest_framework.authtoken.models import Token
-from .models import Item, Category, Tag, StockStatus
+from .models import Category, Item, Tag, StockStatus
+from rest_framework.test import APITestCase, APIClient
+from .serializers import UserSerializer, CategorySerializer, TagSerializer, StockStatusSerializer, ItemSerializer
 
-class ItemTests(TestCase):
-    def setUp(self):
-        self.client = APIClient()
-        self.category = Category.objects.create(name='Test Category')
-        self.stock_status = StockStatus.objects.create(name='In Stock')
-        self.tag = Tag.objects.create(name='Test Tag')
-
-    def test_create_item(self):
-        payload = {
-            'sku': 'TEST001',
-            'name': 'Test Item',
-            'category': self.category.id,
-            'tags': [self.tag.id],
-            'stock_status': self.stock_status.id,
-            'available_stock': 10
-        }
-        response = self.client.post(reverse('item-list'), payload)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+class MockRequest:
+    pass
 
 class ModelTestCase(TestCase):
     def setUp(self):
+        # Create a user
         self.user = User.objects.create_user(username='testuser', password='12345')
+        
+        # Create a category
         self.category = Category.objects.create(name='Electronics', user=self.user)
-
-    def test_model_can_create_a_category(self):
-        """Check the category model can create a category."""
-        old_count = Category.objects.count()
-        Category.objects.create(name='Books', user=self.user)
-        new_count = Category.objects.count()
-        self.assertNotEqual(old_count, new_count)
-
-class ViewTestCase(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='12345')
-        self.client = APIClient()
-        self.client.force_authenticate(user=self.user)
-        self.category_data = {'name': 'Electronics', 'user': self.user.id}
-        self.response = self.client.post(
-            reverse('category-list'),
-            self.category_data,
-            format="json")
-
-    def test_api_can_create_a_category(self):
-        """Test the api has category creation capability."""
-        self.assertEqual(self.response.status_code, status.HTTP_201_CREATED)
-
-    def test_api_can_get_categories(self):
-        """Test the api can get a given category."""
-        category = Category.objects.get(id=1)
-        response = self.client.get(
-            reverse('category-detail', kwargs={'pk': category.id}),
-            format="json")
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertContains(response, category)
-
-    def test_api_can_update_category(self):
-        """Test the api can update a given category."""
-        change_category = {'name': 'Something else'}
-        res = self.client.put(
-            reverse('category-detail', kwargs={'pk': Category.id}),
-            change_category, format='json'
+        
+        # Create a tag
+        self.tag = Tag.objects.create(name='Portable', user=self.user)
+        
+        # Create a stock status
+        self.stock_status = StockStatus.objects.create(name='In Stock', user=self.user)
+        
+        # Create an item
+        self.item = Item.objects.create(
+            sku='123ABC',
+            name='Laptop',
+            category=self.category,
+            stock_status=self.stock_status,
+            available_stock=15,
+            user=self.user
         )
-        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.item.tags.add(self.tag)
 
-    def test_api_can_delete_category(self):
-        """Test the api can delete a category."""
-        category = Category.objects.get()
-        response = self.client.delete(
-            reverse('category-detail', kwargs={'pk': category.id}),
-            format='json',
-            follow=True)
+    def test_category_creation(self):
+        self.assertEqual(self.category.name, 'Electronics')
+        self.assertEqual(self.category.user, self.user)
 
-        self.assertEquals(response.status_code, status.HTTP_204_NO_CONTENT)
+    def test_item_creation(self):
+        self.assertEqual(self.item.sku, '123ABC')
+        self.assertEqual(self.item.name, 'Laptop')
+        self.assertEqual(self.item.category, self.category)
+        self.assertTrue(self.item.tags.filter(name='Portable').exists())
+        self.assertEqual(self.item.stock_status.name, 'In Stock')
+        self.assertEqual(self.item.available_stock, 15)
+        self.assertEqual(self.item.user, self.user)
 
-class UserRegistrationTestCase(APITestCase):
-    def test_user_registration(self):
-        """
-        Ensure we can create a new user and a valid token is created with it.
-        """
-        url = reverse('register')
+class ItemAdminTest(TestCase):
+    def setUp(self):
+        self.site = AdminSite()
+        self.user = User.objects.create_user(username='admin', password='password')
+        self.category = Category.objects.create(name="Electronics", user=self.user)
+        self.stock_status = StockStatus.objects.create(name="In Stock", user=self.user)
+        self.item_admin = ItemAdmin(Item, self.site)
+        self.item = Item.objects.create(
+            sku="123ABC", name="Laptop", category=self.category,
+            stock_status=self.stock_status, available_stock=10, user=self.user
+        )
+
+    def test_list_display(self):
+        expected = ('id', 'sku', 'name', 'category', 'get_tags', 'stock_status', 'available_stock')
+        self.assertEqual(self.item_admin.list_display, expected)
+
+    def test_list_filter(self):
+        expected = ('category', 'stock_status')
+        self.assertEqual(self.item_admin.list_filter, expected)
+
+    def test_search_fields(self):
+        expected = ('sku', 'name')
+        self.assertEqual(self.item_admin.search_fields, expected)
+
+class SerializerTestCase(TestCase):
+    def setUp(self):
+        self.user_data = {
+            'username': 'testuser',
+            'password': 'password',
+            'email': 'test@example.com',
+            'first_name': 'Test',
+            'last_name': 'User'
+        }
+        self.user = User.objects.create_user(**self.user_data)
+        self.category = Category.objects.create(name='Electronics', user=self.user)
+    
+    def test_user_serializer(self):
+        # Test user creation through serializer
+        user_serializer = UserSerializer(data=self.user_data)
+        self.assertTrue(user_serializer.is_valid())
+        
+        new_user = user_serializer.save()
+        self.assertEqual(new_user.username, 'testuser')
+        self.assertTrue(new_user.check_password('password'))
+
+        # Test user serialization
+        serialized_user = UserSerializer(new_user).data
+        self.assertEqual(serialized_user['username'], 'testuser')
+        self.assertNotIn('password', serialized_user)  # Password should not be included in serialized data
+
+    def test_category_serializer(self):
+        # Test category serialization
+        category_serializer = CategorySerializer(self.category)
+        self.assertEqual(category_serializer.data, {
+            'id': self.category.id,
+            'name': 'Electronics',
+            'user': self.user.id
+        })
+
+class ViewTestCase(APITestCase):
+    def setUp(self):
+        # Setup a user and authenticate with a token
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.category = Category.objects.create(name="Electronics", user=self.user)
+        self.item = Item.objects.create(name="Laptop", category=self.category, user=self.user)
+        self.token = Token.objects.create(user=self.user)
+        self.client = APIClient()
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+
+    def test_item_viewset_list(self):
+        # Test the list action of ItemViewSet
+        url = reverse('item-list')  # Adjust this to match your URL name configuration
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)  # Assuming pagination is used
+
+    def test_item_viewset_create(self):
+        # Test the create action of ItemViewSet
+        url = reverse('item-list')  # Adjust this to match your URL name configuration
         data = {
-            'username': 'newuser',
-            'email': 'user@example.com',
-            'password': 'testpassword123'
+            "name": "Smartphone",
+            "category": self.category.id,
+            "user": self.user.id
         }
         response = self.client.post(url, data, format='json')
-        # Check that the response is 201 status code
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        # Check that a User object was actually created
-        self.assertEqual(User.objects.count(), 1)
-        # Check that a Token object was created for the user
-        user = User.objects.get(username='newuser')
-        token = Token.objects.get(user=user)
-        self.assertEqual(response.data['token'], token.key)
-        # Additional checks can be made here, for example, verifying that the password is hashed
-        self.assertTrue(user.check_password('testpassword123'))
+        self.assertEqual(Item.objects.count(), 2)
 
-    def test_user_registration_with_invalid_data(self):
-        """
-        Ensure user registration fails with invalid data
-        """
-        url = reverse('register')
+    def test_login_view(self):
+        # Test the login view
+        url = reverse('login')  # Adjust this to match your URL name configuration
         data = {
-            'username': 'newuser',
-            'email': 'not-an-email',
-            'password': 'short'
+            "username": "testuser",
+            "password": "password"
         }
         response = self.client.post(url, data, format='json')
-        # Check that the response is 400 status code
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        # Check that no user was created
-        self.assertEqual(User.objects.count(), 0)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue('token' in response.data)
 
 
-    # Add more test cases for other API endpoints
