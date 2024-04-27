@@ -1,15 +1,16 @@
 <template>
   <div>
     <div class="sidebar" :class="{ 'open': isMenuOpen }">
+      <!-- Sidebar menu component -->
       <SidebarMenu @menuItemSelected="updateDashboardTitle" />
     </div>
     <div class="main-content">
       <div class="dashboard-header">
         <h1>{{ dashboardTitle }}</h1>
         <!-- Check if the search is inactive and then display "All Items" -->
-        <div v-if="!isSearchActive" class="all-items-label">All Items
-        </div>
+        <div v-if="!isSearchActive" class="all-items-label">All Items</div>
         <div class="summary-section">
+          <!-- Summary section with total categories and total items -->
           <div class="summary-item">
             <i class="material-icons">category</i>
             <div class="summary-text">
@@ -17,7 +18,7 @@
               <span>{{ totalCategories }}</span>
             </div>
           </div>
-          <div class="summary-divider"></div> <!-- Divider line -->
+          <div class="summary-divider"></div>
           <div class="summary-item">
             <i class="material-icons">inventory_2</i>
             <div class="summary-text">
@@ -29,8 +30,10 @@
       </div>
       <div class="item-dashboard">
         <div class="dashboard-controls">
+          <!-- Button to open the new category modal -->
           <button class="new-category-btn" @click="openNewCategoryModal">NEW ITEM CATEGORY</button>
         </div>
+        <!-- Modal component for creating a new category -->
         <dynamic-modal
             title="Create New Category"
             :visible="showNewCategoryModal"
@@ -46,6 +49,7 @@
             </form>
           </dynamic-modal>
         <div class="subcategory-section">
+          <!-- Section for displaying subcategories -->
           <div class="category-header" @click="toggleSubcategories">
             <span>{{ totalCategories }} Subcategories</span>
             <span class="category-arrow">▶</span>
@@ -57,7 +61,9 @@
           </div>
         </div>
         <div class="dashboard-controls">
+          <!-- Button to open the new item modal -->
           <button class="new-item-btn" @click="openNewItemModal">NEW ITEM</button>
+            <!-- Modal component for creating a new item -->
             <dynamic-modal
               title="Create New Item"
               :visible="showNewItemModal"
@@ -90,23 +96,26 @@
               </form>
             </dynamic-modal>
           <button class="new-options-btn" @click="openNewItemModal">OPTIONS ▼</button>
+          <!-- Search box for filtering items -->
           <div class="search-box">
             <input type="text" v-model="searchQuery" placeholder="Search">
           </div>
+          <!-- Controls for toggling between grid and list view -->
           <div v-if="currentView === 'grid'" class="view-controls">
                 <button @click="toggleView('grid')"><i class="material-icons">view_column</i></button>
             </div>
             <div v-else class="view-controls">
                 <button @click="toggleView('list')"><i class="material-icons">list</i></button>
             </div>
+          <!-- Filter controls -->
           <div class="filter-controls">
             <!-- Filter Toggle Button -->
               <button @click="toggleFilters">
                 <i class="material-icons">filter_alt</i>
               </button>
           </div>
+          <!-- Additional filter inputs -->
           <div v-if="showFilters" class="filter-controls">
-            <!-- Example filter inputs (could be for date ranges, stock status, etc.) -->
             <input type="date" v-model="filterStartDate" placeholder="Start Date">
             <input type="date" v-model="filterEndDate" placeholder="End Date">
             <select v-model="filterStockStatus">
@@ -118,6 +127,7 @@
           </div>
         </div>
         <div class="table-wrapper">
+          <!-- Grid view for displaying items -->
           <table v-if="currentView === 'grid'" class="grid-view">
             <thead>
               <tr>
@@ -136,10 +146,8 @@
                 <td>{{ item.sku }}</td>
                 <td>{{ item.name }}</td>
                 <td>
-                  <!-- Get the Tag array and the numbers in it as they will be the ids -->
                   <span v-for="tagId in item.tags" :key="tagId">
-                    {{  console.log("Tag ID:", tagId)}}
-                    {{ getTagName(tagId) }}
+                    {{ formatTags(item.tags) }}
                   </span>
                 </td>
                 <td>{{ getCategoryName(item.category) }}</td>
@@ -148,8 +156,8 @@
               </tr>
             </tbody>
           </table>
+          <!-- List view for displaying items -->
           <div v-else class="list-view">
-              <!-- List view structure -->
               <div class="item-list">
                   <div class="item-title">SKU</div>
                   <div class="item-title">Name</div>
@@ -158,6 +166,7 @@
                   <div class="item-title">In Stock</div>
                   <div class="item-title">Available Stock</div>
                 </div>
+                <!-- List Items-->
                 <div class="list-item" v-for="item in filteredItems" :key="item.id">
                   <input type="checkbox" v-model="item.selected" />
                   <div class="item-details">
@@ -165,7 +174,7 @@
                     <div>{{ item.name }}</div>
                     <div>
                       <span v-for="tagId in item.tags" :key="tagId">
-                        {{ getTagName(tagId) }}
+                        {{ formatTags(item.tags) }}
                       </span>
                     </div>
                     <div>{{ getCategoryName(item.category) }}</div>
@@ -191,9 +200,11 @@ export default {
     DynamicModal,
   },
   computed: {
+    // Check if the search query is active
     isSearchActive() {
     return this.searchQuery.trim().length > 0;
   },
+  // Filter items based on search query and filters
   filteredItems() {
     return this.items.filter(item => {
       const inDateRange = (!this.filterStartDate || new Date(item.date) >= new Date(this.filterStartDate)) &&
@@ -250,27 +261,33 @@ export default {
     }
   },
   methods: {
+    // Toggle the sidebar menu
     toggleSubcategories() {
     this.showSubcategories = !this.showSubcategories;
     console.log("Toggled showSubcategories to: ", this.showSubcategories); // Debugging output
   },
   toggleFilters() {
+    // Toggle the filter controls
     this.showFilters = !this.showFilters;
   },
   toggleSelectAll() {
+    // Toggle select all items
       if(this.allSelected) {
         this.items.forEach(item => item.selected = true);
       } else {
         this.items.forEach(item => item.selected = false);
       }
     },
+    // Toggle between grid and list view
     toggleView(viewType) {
       this.currentView = viewType === 'grid' ? 'list' : 'grid';
         console.log('View toggled to:', this.currentView); // Optional: for debugging
     },
+    // Apply filters to the item list
     applyFilters() {
     this.updateFilteredItems(); // You might need to call this or directly manipulate the filtered list
   },
+  // Update the filtered items based on the filter criteria
   updateFilteredItems() {
     this.filteredItems = this.items.filter((item) => {
       return (
@@ -280,9 +297,11 @@ export default {
       );
     });
   },
+  // Update the dashboard title based on the selected menu item
     updateDashboardTitle(selectedMenuItemLabel) {
       this.dashboardTitle = selectedMenuItemLabel;
     },  
+    // Fetch items from the API
     async fetchItems() {
       try {
         const response = await getItems();
@@ -304,6 +323,7 @@ export default {
         alert('Failed to load items.');
       }
     },
+    // Fetch categories from the API
     async fetchCategories() {
   try {
     const response = await getCategories();
@@ -322,6 +342,7 @@ export default {
     this.totalCategories = 0;
   }
 },
+// Fetch tags from the API
     async fetchTags() {
       try {
         const response = await getTags();
@@ -337,11 +358,17 @@ export default {
         this.tags = [];
       }
     },
+    // Get the tag name based on the tag ID
     getTagName(tagId) {
       const tag = this.tags.find(tag => tag.id === tagId);
       console.log("Tag:", tag);
       return tag ? tag.name : 'Tag not found';
     },
+    // Format tags for display
+    formatTags(tagIds) {
+    return tagIds.map(tagId => this.getTagName(tagId)).join(', ');
+    },
+    // Get the category name based on the category ID
     getCategoryName(categoryId) {
       console.log("Category ID:", categoryId); // Add this log statement
       const categoriesArray = Array.from(this.categories); // Convert proxy array to a regular array
@@ -349,7 +376,9 @@ export default {
       const category = categoriesArray.find(cat => cat.id === categoryId);
       console.log("Category:", category); // Add this log statement
       return category ? category.name : 'Category not found';
-    },async handleNewCategory() {
+    },
+    // Create a new category
+    async handleNewCategory() {
       if (!this.newCategoryName) {
         alert('Category name cannot be empty.');
         return;
@@ -364,20 +393,25 @@ export default {
         alert('Failed to add category.');
       }
     },
+    // Create a new item
     async handleNewItem() {
       this.showNewItemModal = true; // Open the modal for new item
     },
+    // Close the new category modal
     closeNewCategoryModal() {
       this.showNewCategoryModal = false;
     },
+    // Close the new item modal
     closeNewItemModal() {
       this.showNewItemModal = false;
     },
+    // Submit the new category form
     submitNewCategory() {
       if (!this.newCategoryName.trim()) {
         alert('Category name cannot be empty.');
         return;
       }
+      // Call the API to create the new category
       createCategory({ name: this.newCategoryName }).then(response => {
         this.categories.push(response.data);
         this.closeNewCategoryModal(); // Close the modal on successful submission
@@ -387,6 +421,7 @@ export default {
         alert('Failed to add category.');
       });
     },
+    // Submit the new item form
     submitNewItem() {
   console.log("Submitting new item");
   if (!this.newItem.name || !this.newItem.sku || !this.newItem.categoryId) {
@@ -450,8 +485,6 @@ export default {
 </script>
   
   <style scoped>
-  /* Your existing styles */
-  
   .sidebar {
     width: 200px;
     background-color: #ffffff;
